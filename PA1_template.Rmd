@@ -5,21 +5,139 @@ output:
     keep_md: true
 ---
 
+```{r setoptions, echo = TRUE}
+opts_chunk$set(echo = TRUE, results = "asis")
+```
 
 ## Loading and preprocessing the data
 
+```{r}
+library(tidyverse)
+library(dplyr)
+library(tibble)
+library(tidyr)
+library(readr)
 
+if(!file.exists('activity.csv')){
+    unzip('activity.zip')
+}
+
+data <- read_csv("activity.csv")
+
+names(data)
+str(data)
+
+```
 
 ## What is mean total number of steps taken per day?
 
+```{r}
+library(ggplot2)
+library(dplyr)
+data2 <- data%>%
+  na.omit()%>%
+  group_by(date)%>%
+  summarize(sum_step = sum(steps , na.rm = TRUE))
 
+qplot(data2$sum_step, geom="histogram" ,  binwidth=500 , 
+      xlab = "Daily steps" ,
+      main = "Histogram of the total number of steps taken each day") 
+
+# Calculate and print mean of total steps
+mean_total_steps <- mean(data2$sum_step , na.rm = TRUE)
+print(mean_total_steps)
+
+
+# Calculate and print median of total steps
+median_total_steps <- median(data2$sum_step,  na.rm = TRUE)
+print(median_total_steps)
+```
+
+- Mean:  10766.19
+
+- Median: 10765
 
 ## What is the average daily activity pattern?
 
+```{r}
+library(ggplot2)
+library(dplyr)
 
+data3 <- data%>%
+  group_by(interval)%>%
+  summarize(sum_interval = sum(steps , na.rm = TRUE))
+
+ggplot(data3 , aes(x = interval , y = sum_interval)) + 
+  geom_line()+
+  labs(x= "Interval" , y = "Average steps" ,  
+       title = "Average daily activity pattern" )
+
+data3%>%
+  arrange(desc(sum_interval))
+
+```
+The "835" 5-minute interval contains the maximum number of steps
 
 ## Imputing missing values
 
+To fill in the missing values, I decided to use the mean of 5 minute interval.
+```{r}
+library(ggplot2)
+library(dplyr)
 
+#1. Number of missing values
+na_values <- sum(is.na(data$steps))
+
+#2-3. Fill in  missing values
+
+neosteps <- function(x) replace(x, is.na(x), mean(x, na.rm = TRUE))
+dat <- data%>% 
+   group_by(interval)%>%
+   mutate(steps = neosteps(steps))
+
+dat <- dat%>%
+  group_by(date)%>%
+  summarize(sum_step_na = sum(steps))
+
+qplot(dat$sum_step_na, geom="histogram" ,  binwidth=500 , 
+      xlab = "Daily steps" ,
+      main = "Histogram of the total number of steps taken each day with Na values fixed") 
+
+# Calculate and print mean of total steps with NA values fixed
+mean_total_steps_na <- mean(dat$sum_step_na)
+print(mean_total_steps_na)
+
+
+# Calculate and print median of total steps with Na values fixed 
+median_total_steps_na <- dat
+  median(dat$sum_step_na)
+
+```
+
+
+- Number of missing values: 2304
+- Mean numbers of daily steps with missing values: 10766.19
+- Median numbers of daily steps with missing values: 10766.19
+
+So, the mean is the same, while median are increased a bit.
 
 ## Are there differences in activity patterns between weekdays and weekends?
+
+```{r}
+library(ggplot2)
+library(dplyr)
+days <- weekdays(data$date)
+dt <- data%>%
+    mutate(days = weekdays(date))%>%
+    mutate(daytype =  ifelse(days == "Monday" | days == "Tuesday" | days == "Wednseday" | days == "Thursday" | days == "Friday", "Weekdays" , "Weekend"))
+
+f_data <- dt%>%
+  group_by(interval)%>%
+  mutate( avg =  mean(steps, na.rm = TRUE) )
+
+ggplot(f_data , aes(x = interval , y = avg , color = daytype)) +
+  geom_line()+
+  facet_grid(~daytype)
+
+
+  ```
