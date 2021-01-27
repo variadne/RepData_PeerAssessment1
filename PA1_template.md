@@ -249,10 +249,16 @@ dt <- data%>%
     mutate(daytype =  ifelse(days == "Monday" | days == "Tuesday" | days == "Wednseday" | days == "Thursday" | days == "Friday", "Weekdays" , "Weekend"))
 
 f_data <- dt%>%
-  group_by(interval)%>%
-  mutate( avg =  mean(steps, na.rm = TRUE) )
+  group_by(daytype, interval)%>%
+  summarise( mean_steps = mean(steps , na.rm = TRUE)  )
+```
 
-ggplot(f_data , aes(x = interval , y = avg , color = daytype)) +
+```
+## `summarise()` regrouping output by 'daytype' (override with `.groups` argument)
+```
+
+```r
+ggplot(f_data , aes(x = interval , y = mean_steps , color = daytype)) +
   geom_line()+
   facet_grid(~daytype)
 ```
